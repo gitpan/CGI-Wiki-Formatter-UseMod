@@ -53,11 +53,11 @@ METHODS
             order.
 
             The keys of macros should be either regexes or strings. The
-            values can be strings, or, if the corresponding regex is a key,
-            can be coderefs. The coderef will be called with a single
-            argument: the first substring captured by the regex. I would
-            like to call it with all captured substrings but apparently this
-            is complicated.
+            values can be strings, or, if the corresponding key is a regex,
+            can be coderefs. The coderef will be called with the first nine
+            substrings captured by the regex as arguments. I would like to
+            call it with all captured substrings but apparently this is
+            complicated.
 
         Macro examples:
 

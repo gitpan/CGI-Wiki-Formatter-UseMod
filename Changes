@@ -1,3 +1,8 @@
+0.03    28 April 2003
+        Subs in macros are now called with up to nine arguments.  I know this
+        is a bit arbitrary, but I now need it to support two arguments and I
+        might as well allow a few more while I'm at it.
+
 0.02    5 April 2003
         Macros can now substitute the output of subs as well as plain strings.
 

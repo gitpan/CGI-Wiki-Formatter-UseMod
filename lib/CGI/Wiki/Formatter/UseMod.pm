@@ -3,7 +3,7 @@ package CGI::Wiki::Formatter::UseMod;
 use strict;
 
 use vars qw( $VERSION @_links_found );
-$VERSION = '0.02';
+$VERSION = '0.03';
 
 use URI::Escape;
 use Text::WikiFormat as => 'wikiformat';
@@ -74,9 +74,9 @@ Be aware that macros are processed I<after> filtering out disallowed
 HTML tags.  They are also not called in any particular order.
 
 The keys of macros should be either regexes or strings. The values can
-be strings, or, if the corresponding regex is a key, can be coderefs.
-The coderef will be called with a single argument: the first substring
-captured by the regex. I would like to call it with all captured
+be strings, or, if the corresponding key is a regex, can be coderefs.
+The coderef will be called with the first nine substrings captured by
+the regex as arguments. I would like to call it with all captured
 substrings but apparently this is complicated.
 
 =back
@@ -174,7 +174,7 @@ sub format {
     foreach my $key (keys %macros) {
         my $value = $macros{$key};
         if ( ref $value && ref $value eq 'CODE' ) {
-            $safe =~ s/$key/$value->($1)/eg;
+            $safe =~ s/$key/$value->($1, $2, $3, $4, $5, $6, $7, $8, $9)/eg;
 	} else {
 	  $safe =~ s/$key/$value/g;
 	}
