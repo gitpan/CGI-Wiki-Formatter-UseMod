@@ -1,5 +1,7 @@
+Changes
 MANIFEST
 Makefile.PL
 README
 lib/CGI/Wiki/Formatter/UseMod.pm
+t/macros.t
 t/usemod.t

@@ -3,7 +3,7 @@ package CGI::Wiki::Formatter::UseMod;
 use strict;
 
 use vars qw( $VERSION @_links_found );
-$VERSION = '0.01';
+$VERSION = '0.02';
 
 use URI::Escape;
 use Text::WikiFormat as => 'wikiformat';
@@ -68,19 +68,33 @@ C<allowed_tags>, which defaults to allowing no tags).
 
 =over 4
 
-=item * macros - be aware that macros are processed I<after> filtering
-out disallowed HTML tags.  Currently macros are just strings, maybe later
-we can add in subs if we think it might be useful.
+=item B<Macros>
+
+Be aware that macros are processed I<after> filtering out disallowed
+HTML tags.  They are also not called in any particular order.
+
+The keys of macros should be either regexes or strings. The values can
+be strings, or, if the corresponding regex is a key, can be coderefs.
+The coderef will be called with a single argument: the first substring
+captured by the regex. I would like to call it with all captured
+substrings but apparently this is complicated.
 
 =back
 
-Macro example:
+Macro examples:
 
-  macros => { qr/(^|\b)\@SEARCHBOX(\b|$)/ =>
+  macros => {
+
+      '@SEARCHBOX' =>
  	        qq(<form action="wiki.pl" method="get">
                    <input type="hidden" name="action" value="search">
                    <input type="text" size="20" name="terms">
-                   <input type="submit"></form>) }
+                   <input type="submit"></form>),
+
+      qr/\@INDEX\s+\[Category\s+([^\]]+)]/ =>
+            sub { return "{an index of things in category $_[0]}" }
+
+  }
 
 =cut
 
@@ -157,8 +171,13 @@ sub format {
 
     # Now process any macros.
     my %macros = %{$self->{_macros}};
-    foreach my $regexp (keys %macros) {
-        $safe =~ s/$regexp/$macros{$regexp}/g;
+    foreach my $key (keys %macros) {
+        my $value = $macros{$key};
+        if ( ref $value && ref $value eq 'CODE' ) {
+            $safe =~ s/$key/$value->($1)/eg;
+	} else {
+	  $safe =~ s/$key/$value/g;
+	}
     }
 
     # Finally set up config and call Text::WikiFormat.
@@ -377,7 +396,7 @@ chromatic's module, L<Text::WikiFormat>.
 This doesn't yet support all of UseMod's formatting features and
 options, by any means. (In particular, it doesn't cope with nested
 lists, but I think this might be something I need to fix within
-L<Text::WikiFormat>.) This really truly I<is> a 0.01 release. Please
+L<Text::WikiFormat>.) This really truly I<is> a 0.0* release. Please
 send bug reports, omissions, patches, and stuff, to me at
 C<kake@earth.li>.
 

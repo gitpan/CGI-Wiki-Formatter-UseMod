@@ -1,0 +1,5 @@
+0.02    5 April 2003
+        Macros can now substitute the output of subs as well as plain strings.
+
+0.01    3 March 2003
+        Initial release.

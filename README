@@ -47,17 +47,32 @@ METHODS
         Parameters will default to the values shown above (apart from
         "allowed_tags", which defaults to allowing no tags).
 
-        * macros - be aware that macros are processed *after* filtering out
-        disallowed HTML tags. Currently macros are just strings, maybe later
-        we can add in subs if we think it might be useful.
+        Macros
+            Be aware that macros are processed *after* filtering out
+            disallowed HTML tags. They are also not called in any particular
+            order.
 
-        Macro example:
+            The keys of macros should be either regexes or strings. The
+            values can be strings, or, if the corresponding regex is a key,
+            can be coderefs. The coderef will be called with a single
+            argument: the first substring captured by the regex. I would
+            like to call it with all captured substrings but apparently this
+            is complicated.
 
-          macros => { qr/(^|\b)\@SEARCHBOX(\b|$)/ =>
+        Macro examples:
+
+          macros => {
+
+              '@SEARCHBOX' =>
                         qq(<form action="wiki.pl" method="get">
                            <input type="hidden" name="action" value="search">
                            <input type="text" size="20" name="terms">
-                           <input type="submit"></form>) }
+                           <input type="submit"></form>),
+
+              qr/\@INDEX\s+\[Category\s+([^\]]+)]/ =>
+                    sub { return "{an index of things in category $_[0]}" }
+
+          }
 
     format
           my $html = $formatter->format($submitted_content, $wiki);
@@ -111,7 +126,7 @@ CAVEATS
         This doesn't yet support all of UseMod's formatting features and
         options, by any means. (In particular, it doesn't cope with nested
         lists, but I think this might be something I need to fix within
-        Text::WikiFormat.) This really truly *is* a 0.01 release. Please
+        Text::WikiFormat.) This really truly *is* a 0.0* release. Please
         send bug reports, omissions, patches, and stuff, to me at
         "kake@earth.li".
 
