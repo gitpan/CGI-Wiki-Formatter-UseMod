@@ -3,7 +3,7 @@ package CGI::Wiki::Formatter::UseMod;
 use strict;
 
 use vars qw( $VERSION @_links_found );
-$VERSION = '0.05';
+$VERSION = '0.06';
 
 use URI::Escape;
 use Text::WikiFormat as => 'wikiformat';
@@ -188,14 +188,20 @@ sub format {
 			implicit_links => $self->{_implicit_links} );
 
     my %format_tags = (
+        # chromatic made most of the regex below.  I will document it when
+        # I understand it properly.
+        indent   => qr/^(?:\t+|\s{4,}|\s*\*?(?=\**\*+))/,
         newline => "",
         extended_link_delimiters => [ '[[', ']]' ],
-        lists                    => {
+        blocks                   => {
 		         ordered         => qr/^\s*([\d]+)\.\s*/,
                          unordered       => qr/^\s*\*\s*/,
                          definition      => qr/^:\s*/
                                     },
         definition               => [ "<dl>\n", "</dl>\n", "<dt><dd>", "\n" ],
+        indented   => { definition => 0 }, 
+        blockorder => [ qw( header line ordered unordered code definition paragraph )],
+        nests      => { map { $_ => 1} qw( ordered unordered ) },
         link                     => sub {
             my ($link, $opts) = @_;
             $opts ||= {};
@@ -229,31 +235,6 @@ sub format {
 	    }
         },
     );
-
-    # We need to be sneaky now, because we want to force the things
-    # inside a heading to be formatted - but Text::WikiFormat won't do
-    # this by default, since it only calls format_line on what remains
-    # *after* the regex has been removed from the line, and our
-    # header-recognising regex needs to encompass the entire line to
-    # make sure that the = are balanced.
-    #
-    # We're OK with the 'options', since up there ---^ we provide a value
-    # for each one.  Note that the defaulting of opts in Text::WikiFormat
-    # is done in the format sub, rather than with a merge_hash with a tags
-    # hash defined at the top of the package, so if more opts are
-    # added to Text::WikiFormat we'll need to add them too.
-    #
-    # Need to merge the 'tags' though.
-
-    my %all_tags = %Text::WikiFormat::tags;
-    Text::WikiFormat::merge_hash( \%format_tags, \%all_tags );
-
-    if ( $self->{_use_headings} ) {
-        $format_tags{heading} = [ "", "",
-            sub { "<h".(length $_[1]).">".Text::WikiFormat::format_line($_[2], \%all_tags, \%format_opts)."</h".(length $_[1]).">\n" } ];
-#        $format_tags{lists}{heading} = qr/^(={1,6})\s+([^=]+)\s+\1\s*$/;
-        $format_tags{lists}{heading} = qr/^(={1,6})\s+(.+)\s+\1\s*$/;
-    }
 
     return wikiformat($safe, \%format_tags, \%format_opts );
 }
@@ -408,9 +389,7 @@ done within chromatic's module, L<Text::WikiFormat>.
 =head1 CAVEATS
 
 This doesn't yet support all of UseMod's formatting features and
-options, by any means. (In particular, it doesn't cope with nested
-lists, but I think this might be something I need to fix within
-L<Text::WikiFormat>.) This really truly I<is> a 0.0* release. Please
+options, by any means.  This really truly I<is> a 0.0* release. Please
 send bug reports, omissions, patches, and stuff, to me at
 C<kake@earth.li>.
 

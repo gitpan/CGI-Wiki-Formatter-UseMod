@@ -50,8 +50,9 @@ SKIP: {
       }
 
 my @links = $formatter->find_internal_links($wikitext);
-is_deeply( [ sort @links ], [ "WikiText", "WikiWord" ],
+is_deeply( [ sort @links ], [ "LinkInAHeader", "WikiText", "WikiWord" ],
 	   "find_internal_links seems to work" );
+print "# Found internal links: " . join(", ", sort @links) . "\n";
 
 print "#\n#### Testing HTML escaping\n#\n";
 $wikitext = <<WIKITEXT;
