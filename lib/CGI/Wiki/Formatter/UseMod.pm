@@ -3,7 +3,7 @@ package CGI::Wiki::Formatter::UseMod;
 use strict;
 
 use vars qw( $VERSION @_links_found );
-$VERSION = '0.06';
+$VERSION = '0.07';
 
 use URI::Escape;
 use Text::WikiFormat as => 'wikiformat';
@@ -196,7 +196,8 @@ sub format {
         blocks                   => {
 		         ordered         => qr/^\s*([\d]+)\.\s*/,
                          unordered       => qr/^\s*\*\s*/,
-                         definition      => qr/^:\s*/
+                         definition      => qr/^:\s*/,
+                         paragraph       => qr/(?-xism:)/ # avoid T::WF bug
                                     },
         definition               => [ "<dl>\n", "</dl>\n", "<dt><dd>", "\n" ],
         indented   => { definition => 0 }, 

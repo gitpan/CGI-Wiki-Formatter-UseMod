@@ -4,5 +4,7 @@ Makefile.PL
 README
 lib/CGI/Wiki/Formatter/UseMod.pm
 t/encode-node-names.t
+t/lists.t
 t/macros.t
+t/twf-bug.t
 t/usemod.t
