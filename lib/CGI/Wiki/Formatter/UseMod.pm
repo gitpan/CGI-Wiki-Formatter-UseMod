@@ -3,7 +3,7 @@ package CGI::Wiki::Formatter::UseMod;
 use strict;
 
 use vars qw( $VERSION @_links_found );
-$VERSION = '0.08';
+$VERSION = '0.09';
 
 use URI::Escape;
 use Text::WikiFormat as => 'wikiformat';
@@ -152,6 +152,7 @@ within L<CGI::Wiki>.
 
 sub format {
     my ($self, $raw, $wiki) = @_;
+    $raw =~ s/\r\n/\n/sg; # CGI newline is \r\n not \n
     my $safe = "";
 
     my %allowed = map {lc($_) => 1, "/".lc($_) => 1} @{$self->{_allowed_tags}};
@@ -195,7 +196,8 @@ sub format {
         # chromatic made most of the regex below.  I will document it when
         # I understand it properly.
         indent   => qr/^(?:\t+|\s{4,}|\s*\*?(?=\**\*+))/,
-        newline => "",
+        newline => "", # avoid bogus <br />
+        paragraph       => [ "<p>", "</p>\n", "", "\n", 1 ], # no bogus <br />
         extended_link_delimiters => [ '[[', ']]' ],
         blocks                   => {
                          ordered         => qr/^\s*([\d]+)\.\s*/,

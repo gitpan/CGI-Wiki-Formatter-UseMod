@@ -1,3 +1,7 @@
+0.09    22 September 2003
+        Changed the way we call Text::WikiFormat, to avoid <br / being
+          inserted all over the place.
+
 0.08    12 August 2003
         Removed temporary tweak and upped Text::WikiFormat version prereq.
         Added node_suffix and edit_suffix options for Shevek.
