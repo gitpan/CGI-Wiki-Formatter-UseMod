@@ -3,7 +3,7 @@ package CGI::Wiki::Formatter::UseMod;
 use strict;
 
 use vars qw( $VERSION @_links_found );
-$VERSION = '0.07';
+$VERSION = '0.08';
 
 use URI::Escape;
 use Text::WikiFormat as => 'wikiformat';
@@ -44,8 +44,10 @@ A formatter backend for L<CGI::Wiki> that supports UseMod-style formatting.
                  use_headings        => 1, # $UseHeadings
                  allowed_tags        => [qw(b i)], # defaults to none
                  macros              => {},
-	         node_prefix         => 'wiki.pl?',
+                 node_prefix         => 'wiki.pl?',
+                 node_suffix         => '',
                  edit_prefix         => 'wiki.pl?action=edit&id=',
+                 edit_suffix         => '',
                  munge_urls          => 0,
   );
 
@@ -87,7 +89,7 @@ Macro examples:
   macros => {
 
       '@SEARCHBOX' =>
- 	        qq(<form action="wiki.pl" method="get">
+                qq(<form action="wiki.pl" method="get">
                    <input type="hidden" name="action" value="search">
                    <input type="text" size="20" name="terms">
                    <input type="submit"></form>),
@@ -112,15 +114,17 @@ sub _init {
 
     # Store the parameters or their defaults.
     my %defs = ( extended_links      => 0,
-	         implicit_links      => 1,
+                 implicit_links      => 1,
                  force_ucfirst_nodes => 1,
                  use_headings        => 1,
-		 allowed_tags        => [],
-		 macros              => {},
-	         node_prefix         => 'wiki.pl?',
+                 allowed_tags        => [],
+                 macros              => {},
+                 node_prefix         => 'wiki.pl?',
+                 node_suffix         => '',
                  edit_prefix         => 'wiki.pl?action=edit&id=',
+                 edit_suffix         => '',
                  munge_urls          => 0,
-	       );
+               );
 
     my %collated = (%defs, %args);
     foreach my $k (keys %defs) {
@@ -155,16 +159,16 @@ sub format {
     # Parse the HTML - even if we're not allowing any tags, because we're
     # using a custom escaping routine rather than CGI.pm
     my $parser = HTML::PullParser->new(doc   => $raw,
-				       start => '"TAG", tag, text',
-				       end   => '"TAG", tag, text',
-				       text  => '"TEXT", tag, text');
+                                       start => '"TAG", tag, text',
+                                       end   => '"TAG", tag, text',
+                                       text  => '"TEXT", tag, text');
     while (my $token = $parser->get_token) {
         my ($flag, $tag, $text) = @$token;
-	if ($flag eq "TAG" and !defined $allowed{lc($tag)}) {
-	    $safe .= $self->_escape_HTML($text);
-	} else {
-	    $safe .= $text;
-	}
+        if ($flag eq "TAG" and !defined $allowed{lc($tag)}) {
+            $safe .= $self->_escape_HTML($text);
+        } else {
+            $safe .= $text;
+        }
     }
 
     # Now do any inline links.
@@ -177,15 +181,15 @@ sub format {
         my $value = $macros{$key};
         if ( ref $value && ref $value eq 'CODE' ) {
             $safe =~ s/$key/$value->($1, $2, $3, $4, $5, $6, $7, $8, $9)/eg;
-	} else {
-	  $safe =~ s/$key/$value/g;
-	}
+        } else {
+          $safe =~ s/$key/$value/g;
+        }
     }
 
     # Finally set up config and call Text::WikiFormat.
     my %format_opts = ( extended       => $self->{_extended_links},
-			prefix         => $self->{_node_prefix},
-			implicit_links => $self->{_implicit_links} );
+                        prefix         => $self->{_node_prefix},
+                        implicit_links => $self->{_implicit_links} );
 
     my %format_tags = (
         # chromatic made most of the regex below.  I will document it when
@@ -194,10 +198,9 @@ sub format {
         newline => "",
         extended_link_delimiters => [ '[[', ']]' ],
         blocks                   => {
-		         ordered         => qr/^\s*([\d]+)\.\s*/,
+                         ordered         => qr/^\s*([\d]+)\.\s*/,
                          unordered       => qr/^\s*\*\s*/,
-                         definition      => qr/^:\s*/,
-                         paragraph       => qr/(?-xism:)/ # avoid T::WF bug
+                         definition      => qr/^:\s*/
                                     },
         definition               => [ "<dl>\n", "</dl>\n", "<dt><dd>", "\n" ],
         indented   => { definition => 0 }, 
@@ -214,26 +217,28 @@ sub format {
 
             if ( $self->{_force_ucfirst_nodes} ) {
                 $link = $self->_do_freeupper($link);
-	    }
-	    $link = $self->_munge_spaces($link);
+            }
+            $link = $self->_munge_spaces($link);
 
             my $editlink_not_link = 0;
             # See whether the linked-to node exists, if we can.
             if ( $wiki && !$wiki->node_exists( $link ) ) {
                 $editlink_not_link = 1;
-	    }
+            }
 
-	    $link =~ s/ /_/g if $self->{_munge_urls};
+            $link =~ s/ /_/g if $self->{_munge_urls};
 
             $link = uri_escape( $link );
 
-            my $prefix = $opts->{prefix} || '';
             if ( $editlink_not_link ) {
-                my $editprefix = $self->{_edit_prefix};
-                return qq|[$title]<a href="$editprefix$link">?</a>|;
-	    } else {
-                return qq|<a href="$prefix$link">$title</a>|;
-	    }
+                my $prefix = $self->{_edit_prefix};
+                my $suffix = $self->{_edit_suffix};
+                return qq|[$title]<a href="$prefix$link$suffix">?</a>|;
+            } else {
+                my $prefix = $self->{_node_prefix};
+                my $suffix = $self->{_node_suffix};
+                return qq|<a href="$prefix$link$suffix">$title</a>|;
+            }
         },
     );
 
@@ -266,8 +271,8 @@ sub find_internal_links {
     @_links_found = (); 
  
     my %format_opts = ( extended       => $self->{_extended_links},
-			prefix         => $self->{_node_prefix},
-			implicit_links => $self->{_implicit_links} );
+                        prefix         => $self->{_node_prefix},
+                        implicit_links => $self->{_implicit_links} );
 
     my %format_tags = ( extended_link_delimiters => [ '[[', ']]' ],
                         link => sub {
@@ -278,8 +283,8 @@ sub find_internal_links {
                               if $opts->{extended};
                             if ( $self->{_force_ucfirst_nodes} ) {
                                 $link = $self->_do_freeupper($link);
-	                    }
-			    $link = $self->_munge_spaces($link);
+                            }
+                            $link = $self->_munge_spaces($link);
                             push @CGI::Wiki::Formatter::UseMod::_links_found,
                                                                          $link;
                             return ""; # don't care about output

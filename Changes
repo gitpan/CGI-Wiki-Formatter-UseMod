@@ -1,7 +1,11 @@
+0.08    12 August 2003
+        Removed temporary tweak and upped Text::WikiFormat version prereq.
+        Added node_suffix and edit_suffix options for Shevek.
+
 0.07    4 August 2003
         Added t/lists.t to MANIFEST, whoops.
         Made a small tweak to overcome bug in Text::WikiFormat 0.7 - will
-          take it out when that's fixed.
+          take it out when that's fixed (thanks to Sam Vilain for the fix).
 
 0.06    1 August 2003
         Changes for compatibility with Text::WikiFormat 0.7 - we now have
