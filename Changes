@@ -1,3 +1,6 @@
+0.12    2 June 2004
+        Indentation now causes <pre>, as per the UseMod spec.
+
 0.11    20 November 2003
         Added (experimental, advanced) "munge_node_name" parameter.
 

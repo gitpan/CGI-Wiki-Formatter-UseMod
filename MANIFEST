@@ -12,3 +12,4 @@ t/node-suffix.t
 t/paragraphs.t
 t/twf-bug.t
 t/usemod.t
+META.yml                                 Module meta-data (added by MakeMaker)

@@ -3,7 +3,7 @@ package CGI::Wiki::Formatter::UseMod;
 use strict;
 
 use vars qw( $VERSION @_links_found );
-$VERSION = '0.11';
+$VERSION = '0.12';
 
 use URI::Escape;
 use Text::WikiFormat as => 'wikiformat';
@@ -110,7 +110,8 @@ so the default is to B<not> munge URLs.
 =item B<Macros>
 
 Be aware that macros are processed I<after> filtering out disallowed
-HTML tags.  They are also not called in any particular order.
+HTML tags and I<before> transforming from wiki markup into HTML.  They
+are also not called in any particular order.
 
 The keys of macros should be either regexes or strings. The values can
 be strings, or, if the corresponding key is a regex, can be coderefs.
@@ -239,15 +240,18 @@ sub format {
         blocks                   => {
                          ordered         => qr/^\s*([\d]+)\.\s*/,
                          unordered       => qr/^\s*\*\s*/,
-                         definition      => qr/^:\s*/
+                         definition      => qr/^:\s*/,
+                         pre             => qr/^\s+/
                                     },
         definition               => [ "<dl>\n", "</dl>\n", "<dt><dd>", "\n" ],
+        pre                      => [ "<pre>\n", "</pre>\n", "", "\n" ],
         # we don't label unordered lists as "not indented" so we can nest them.
         indented   => {
                         definition => 0,
-                        ordered    => 0
+                        ordered    => 0,
+                        pre        => 0,
                        }, 
-        blockorder => [ qw( header line ordered unordered code definition paragraph )],
+        blockorder => [ qw( header line ordered unordered code definition pre paragraph )],
         nests      => { map { $_ => 1} qw( ordered unordered ) },
         link                     => sub {
             my ($link, $opts) = @_;
@@ -428,7 +432,7 @@ Kake Pugh (kake@earth.li).
 
 =head1 COPYRIGHT
 
-     Copyright (C) 2003 Kake Pugh.  All Rights Reserved.
+     Copyright (C) 2003-2004 Kake Pugh.  All Rights Reserved.
 
 This module is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself.
@@ -442,7 +446,7 @@ done within chromatic's module, L<Text::WikiFormat>.
 =head1 CAVEATS
 
 This doesn't yet support all of UseMod's formatting features and
-options, by any means.  This really truly I<is> a 0.0* release. Please
+options, by any means.  This really truly I<is> a 0.* release. Please
 send bug reports, omissions, patches, and stuff, to me at
 C<kake@earth.li>.
 

@@ -43,11 +43,8 @@ like( $html,
 like( $html, qr|<h4>Header with an = in</h4>|, "...headers may contain =" );
 like( $html, qr|<dl>\s*<dt><dd>This should be a\s*<dt><dd>definition list with data\s*<dt><dd>but no terms\s*</dl>|,
       "leading : made into <dl>" );
-SKIP: {
-        skip "TODO", 1;
-	like( $html, qr|<pre>\n pig\n pig\n</pre>|,
-	      "leading space makes <pre>" );
-      }
+like( $html, qr|<pre>\npig\npig\n</pre>|,
+      "leading space makes <pre>" );
 
 my @links = $formatter->find_internal_links($wikitext);
 is_deeply( [ sort @links ], [ "LinkInAHeader", "WikiText", "WikiWord" ],
