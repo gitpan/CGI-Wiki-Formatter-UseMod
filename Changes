@@ -1,3 +1,8 @@
+0.13    4 June 2004
+        Leading ':' (which creates a definition list for an indent effect)
+          now has better HTML, plus adds a leading &nbsp; to allow blank
+          lines in the indented text.
+
 0.12    2 June 2004
         Indentation now causes <pre>, as per the UseMod spec.
 

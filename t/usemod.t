@@ -41,7 +41,7 @@ like( $html,
       qr|<h4><a href="wiki.pl\?LinkInAHeader">LinkInAHeader</a></h4>|,
       "...links work in headers" );
 like( $html, qr|<h4>Header with an = in</h4>|, "...headers may contain =" );
-like( $html, qr|<dl>\s*<dt><dd>This should be a\s*<dt><dd>definition list with data\s*<dt><dd>but no terms\s*</dl>|,
+like( $html, qr|<dl>\s*<dd>&nbsp;This should be a</dd>\s*<dd>&nbsp;definition list with data</dd>\s*<dd>&nbsp;but no terms</dd>\s*</dl>|,
       "leading : made into <dl>" );
 like( $html, qr|<pre>\npig\npig\n</pre>|,
       "leading space makes <pre>" );

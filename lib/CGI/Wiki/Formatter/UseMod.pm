@@ -3,7 +3,7 @@ package CGI::Wiki::Formatter::UseMod;
 use strict;
 
 use vars qw( $VERSION @_links_found );
-$VERSION = '0.12';
+$VERSION = '0.13';
 
 use URI::Escape;
 use Text::WikiFormat as => 'wikiformat';
@@ -243,7 +243,7 @@ sub format {
                          definition      => qr/^:\s*/,
                          pre             => qr/^\s+/
                                     },
-        definition               => [ "<dl>\n", "</dl>\n", "<dt><dd>", "\n" ],
+        definition               => [ "<dl>\n", "</dl>\n", "<dd>&nbsp;", "</dd>\n" ],
         pre                      => [ "<pre>\n", "</pre>\n", "", "\n" ],
         # we don't label unordered lists as "not indented" so we can nest them.
         indented   => {
