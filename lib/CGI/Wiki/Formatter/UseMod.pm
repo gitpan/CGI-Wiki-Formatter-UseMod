@@ -3,7 +3,7 @@ package CGI::Wiki::Formatter::UseMod;
 use strict;
 
 use vars qw( $VERSION @_links_found );
-$VERSION = '0.13';
+$VERSION = '0.14';
 
 use URI::Escape;
 use Text::WikiFormat as => 'wikiformat';
@@ -211,7 +211,19 @@ sub format {
     }
 
     # Now do any inline links.
-    my $finder = URI::Find::Delimited->new( ignore_quoted => 1 );
+    my $callback = sub {
+        my ($open, $close, $url, $title, $whitespace) = @_;
+        $title ||= $url;
+        if ( $open && $close ) {
+            return $self->make_external_link( title => $title, url => $url );
+        } else {
+            return $open
+                   . $self->make_external_link( title => $title, url => $url )
+                   . $close;
+        }
+    };
+ 
+    my $finder = URI::Find::Delimited->new( ignore_quoted => 1, callback => $callback );
     $finder->find(\$safe);
 
     # Now process any macros.
@@ -283,11 +295,17 @@ sub format {
             if ( $editlink_not_link ) {
                 my $prefix = $self->{_edit_prefix};
                 my $suffix = $self->{_edit_suffix};
-                return qq|[$title]<a href="$prefix$link$suffix">?</a>|;
+                return $self->make_edit_link(
+                                              title => $title,
+                                              url   => $prefix.$link.$suffix,
+                                            );
             } else {
                 my $prefix = $self->{_node_prefix};
                 my $suffix = $self->{_node_suffix};
-                return qq|<a href="$prefix$link$suffix">$title</a>|;
+                return $self->make_internal_link(
+                                              title => $title,
+                                              url   => $prefix.$link.$suffix,
+                                                );
             }
         },
     );
@@ -425,6 +443,93 @@ sub _munge_spaces {
 
     return $node
 }
+
+=head1 SUBCLASSING
+
+The following methods can be overridden to provide custom behaviour.
+
+=over
+
+=item B<make_edit_link>
+
+    my $link = $self->make_edit_link(
+        title => "Home Page",
+        url   => "http://example.com/?id=Home",
+                                   );
+
+This method will be passed a title and a url and should return an HTML
+snippet.  For example, you can add a C<title> attribute to the link
+like so:
+
+  sub make_edit_link {
+      my ($self, %args) = @_;
+      my $title = $args{title};
+      my $url = $args{url};
+      return qq|[$title]<a href="$url" title="create">?</a>|;
+  }
+
+=cut
+
+sub make_edit_link {
+    my ($self, %args) = @_;
+    return qq|[$args{title}]<a href="$args{url}">?</a>|;
+}
+
+=item B<make_internal_link>
+
+    my $link = $self->make_internal_link(
+        title => "Home Page",
+        url   => "http://example.com/?id=Home",
+                                        );
+
+This method will be passed a title and a url and should return an HTML
+snippet.  For example, you can add a C<class> attribute to the link
+like so:
+
+  sub make_internal_link {
+      my ($self, %args) = @_;
+      my $title = $args{title};
+      my $url = $args{url};
+      return qq|<a href="$url" class="internal">$title</a>|;
+  }
+
+=cut
+
+sub make_internal_link {
+    my ($self, %args) = @_;
+    return qq|<a href="$args{url}">$args{title}</a>|;
+}
+
+=item B<make_external_link>
+
+    my $link = $self->make_external_link(
+        title => "London Perlmongers",
+        url   => "http://london.pm.org",
+                                        );
+
+This method will be passed a title and a url and should return an HTML
+snippet.  For example, you can add a little icon after each external
+link like so:
+
+  sub make_external_link {
+      my ($self, %args) = @_;
+      my $title = $args{title};
+      my $url = $args{url};
+      return qq|<a href="$url">$title</a> <img src="external.gif">|;
+  }
+
+=cut
+
+sub make_external_link {
+    my ($self, %args) = @_;
+    my ($open, $close) = ( "[", "]" );
+    if ( $args{title} eq $args{url} ) {
+        ($open, $close) = ( "", "" );
+    }
+    return qq|$open<a href="$args{url}">$args{title}</a>$close|;
+}
+
+=back
 
 =head1 AUTHOR
 

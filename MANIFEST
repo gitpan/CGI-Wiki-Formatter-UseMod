@@ -3,8 +3,10 @@ MANIFEST
 Makefile.PL
 README
 lib/CGI/Wiki/Formatter/UseMod.pm
+t/default_links.t
 t/encode-node-names.t
 t/linebreaks.t
+t/links.t
 t/lists.t
 t/macros.t
 t/munge_node_name.t

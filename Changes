@@ -1,3 +1,7 @@
+0.14    9 July 2004
+        Allow subclassing to alter hyperlink appearance - see SUBCLASSING
+          in perldoc CGI::Wiki::Formatter::UseMod.
+
 0.13    4 June 2004
         Leading ':' (which creates a definition list for an indent effect)
           now has better HTML, plus adds a leading &nbsp; to allow blank
