@@ -1,3 +1,8 @@
+0.16    20 September 2004
+        Added the "pass_wiki_to_macros" flag to let you write more powerful
+          macros - see perldoc for details.
+        Exposed the ->format_link method - see perldoc for details.
+
 0.15    7 August 2004
         Added very simple table support:
         || foo || bar ||

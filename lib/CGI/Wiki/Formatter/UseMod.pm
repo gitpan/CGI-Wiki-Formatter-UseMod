@@ -3,7 +3,7 @@ package CGI::Wiki::Formatter::UseMod;
 use strict;
 
 use vars qw( $VERSION @_links_found );
-$VERSION = '0.15';
+$VERSION = '0.16';
 
 use URI::Escape;
 use Text::WikiFormat as => 'wikiformat';
@@ -44,6 +44,7 @@ A formatter backend for L<CGI::Wiki> that supports UseMod-style formatting.
                  use_headings        => 1, # $UseHeadings
                  allowed_tags        => [qw(b i)], # defaults to none
                  macros              => {},
+                 pass_wiki_to_macros => 0,
                  node_prefix         => 'wiki.pl?',
                  node_suffix         => '',
                  edit_prefix         => 'wiki.pl?action=edit;id=',
@@ -119,9 +120,32 @@ The coderef will be called with the first nine substrings captured by
 the regex as arguments. I would like to call it with all captured
 substrings but apparently this is complicated.
 
+You may wish to have access to the overall wiki object in the subs
+defined in your macro.  To do this:
+
+=over
+
+=item *
+
+Pass the wiki object to the C<< ->formatter >> call as described below.
+
+=item *
+
+Pass a true value in the C<pass_wiki_to_macros> parameter when calling
+C<< ->new >>.
+
+=back
+
+If you do this, then I<all> coderefs will be called with the wiki object
+as the first parameter, followed by the first nine captured substrings
+as described above.  Note therefore that setting C<pass_wiki_to_macros>
+may cause backwards compatibility issues.
+
 =back
 
 Macro examples:
+
+  # Simple example - substitute a little search box for '@SEARCHBOX'
 
   macros => {
 
@@ -130,11 +154,34 @@ Macro examples:
                    <input type="hidden" name="action" value="search">
                    <input type="text" size="20" name="terms">
                    <input type="submit"></form>),
-
-      qr/\@INDEX\s+\[Category\s+([^\]]+)]/ =>
-            sub { return "{an index of things in category $_[0]}" }
-
   }
+
+  # More complex example - substitute a list of all nodes in a
+  # category for '@INDEX_LINK [[Category Foo]]'
+
+  pass_wiki_to_macros => 1,
+  macros              => {
+      qr/\@INDEX_LINK\s+\[\[Category\s+([^\]]+)]]/ =>
+          sub {
+                my ($wiki, $category) = @_;
+                my @nodes = $wiki->list_nodes_by_metadata(
+                        metadata_type  => "category",
+                        metadata_value => $category,
+                        ignore_case    => 1,
+                );
+                my $return = "\n";
+                foreach my $node ( @nodes ) {
+                    $return .= "* "
+                            . $wiki->formatter->format_link(
+                                                       wiki => $wiki,
+                                                       link => $node,
+                                                           )
+                            . "\n";
+                 }
+                 return $return;
+               },
+  }
+
 
 =cut
 
@@ -156,6 +203,7 @@ sub _init {
                  use_headings        => 1,
                  allowed_tags        => [],
                  macros              => {},
+                 pass_wiki_to_macros => 0,
                  node_prefix         => 'wiki.pl?',
                  node_suffix         => '',
                  edit_prefix         => 'wiki.pl?action=edit;id=',
@@ -168,7 +216,6 @@ sub _init {
     foreach my $k (keys %defs) {
         $self->{"_".$k} = $collated{$k};
     }
-
     return $self;
 }
 
@@ -231,17 +278,19 @@ sub format {
     foreach my $key (keys %macros) {
         my $value = $macros{$key};
         if ( ref $value && ref $value eq 'CODE' ) {
-            $safe =~ s/$key/$value->($1, $2, $3, $4, $5, $6, $7, $8, $9)/eg;
+warn "foo";
+	    if ( $self->{_pass_wiki_to_macros} and $wiki ) {
+                $safe=~ s/$key/$value->($wiki, $1, $2, $3, $4, $5, $6, $7, $8, $9)/eg;
+            } else {
+                $safe=~ s/$key/$value->($1, $2, $3, $4, $5, $6, $7, $8, $9)/eg;
+            }
         } else {
           $safe =~ s/$key/$value/g;
         }
     }
 
     # Finally set up config and call Text::WikiFormat.
-    my %format_opts = ( extended       => $self->{_extended_links},
-                        prefix         => $self->{_node_prefix},
-                        implicit_links => $self->{_implicit_links} );
-
+    my %format_opts = $self->_format_opts;
     my %format_tags = (
         # chromatic made most of the regex below.  I will document it when
         # I understand it properly.
@@ -275,52 +324,101 @@ sub format {
                        }, 
         blockorder => [ qw( header line ordered unordered code definition pre table paragraph )],
         nests      => { map { $_ => 1} qw( ordered unordered ) },
-        link                     => sub {
-            my ($link, $opts) = @_;
-            $opts ||= {};
-
-            my $title;
-            ($link, $title) = split(/\|/, $link, 2) if $opts->{extended};
-            $title =~ s/^\s*// if $title; # strip leading whitespace
-            $title ||= $link;
-
-            if ( $self->{_force_ucfirst_nodes} ) {
-                $link = $self->_do_freeupper($link);
-            }
-            $link = $self->_munge_spaces($link);
-
-            $link = $self->{_munge_node_name}($link)
-              if $self->{_munge_node_name};
-
-            my $editlink_not_link = 0;
-            # See whether the linked-to node exists, if we can.
-            if ( $wiki && !$wiki->node_exists( $link ) ) {
-                $editlink_not_link = 1;
-            }
-
-            $link =~ s/ /_/g if $self->{_munge_urls};
-
-            $link = uri_escape( $link );
-
-            if ( $editlink_not_link ) {
-                my $prefix = $self->{_edit_prefix};
-                my $suffix = $self->{_edit_suffix};
-                return $self->make_edit_link(
-                                              title => $title,
-                                              url   => $prefix.$link.$suffix,
-                                            );
-            } else {
-                my $prefix = $self->{_node_prefix};
-                my $suffix = $self->{_node_suffix};
-                return $self->make_internal_link(
-                                              title => $title,
-                                              url   => $prefix.$link.$suffix,
-                                                );
-            }
+        link => sub {
+                      my $link = shift;
+                      return $self->format_link(
+                                                 link => $link,
+                                                 wiki => $wiki,
+                                               );
         },
     );
 
     return wikiformat($safe, \%format_tags, \%format_opts );
+}
+
+sub _format_opts {
+    my $self = shift;
+    return (
+             extended       => $self->{_extended_links},
+             prefix         => $self->{_node_prefix},
+             implicit_links => $self->{_implicit_links}
+           );
+}
+
+=item B<format_link>
+
+  my $string = $formatter->format_link(
+                                        link => "Home Node",
+                                        wiki => $wiki,
+                                      );
+
+An internal method exposed to make it easy to go from eg
+
+  * Foo
+  * Bar
+
+to
+
+  * <a href="index.cgi?Foo">Foo</a>
+  * <a href="index.cgi?Bar">Bar</a>
+
+See Macro Examples above for why you might find this useful.
+
+C<link> should be something that would go inside your extended link
+delimiters.  C<wiki> is optional but should be a L<CGI::Wiki> object.
+If you do supply C<wiki> then the method will be able to check whether
+the node exists yet or not and so will call C<< ->make_edit_link >>
+instead of C<< ->make_internal_link >> where appropriate.  If you don't
+supply C<wiki> then C<< ->make_internal_link >> will be called always.
+
+This method used to be private so may do unexpected things if you use
+it in a way that I haven't tested yet.
+
+=cut
+
+sub format_link {
+    my ($self, %args) = @_;
+    my $link = $args{link};
+    my %opts = $self->_format_opts;
+    my $wiki = $args{wiki};
+
+    my $title;
+    ($link, $title) = split(/\|/, $link, 2) if $opts{extended};
+    $title =~ s/^\s*// if $title; # strip leading whitespace
+    $title ||= $link;
+
+    if ( $self->{_force_ucfirst_nodes} ) {
+        $link = $self->_do_freeupper($link);
+    }
+    $link = $self->_munge_spaces($link);
+
+    $link = $self->{_munge_node_name}($link)
+        if $self->{_munge_node_name};
+
+    my $editlink_not_link = 0;
+    # See whether the linked-to node exists, if we can.
+    if ( $wiki && !$wiki->node_exists( $link ) ) {
+        $editlink_not_link = 1;
+    }
+
+    $link =~ s/ /_/g if $self->{_munge_urls};
+    $link = uri_escape( $link );
+
+    if ( $editlink_not_link ) {
+        my $prefix = $self->{_edit_prefix};
+        my $suffix = $self->{_edit_suffix};
+        return $self->make_edit_link(
+                                      title => $title,
+                                      url   => $prefix.$link.$suffix,
+                                    );
+    } else {
+        my $prefix = $self->{_node_prefix};
+        my $suffix = $self->{_node_suffix};
+        return $self->make_internal_link(
+                                          title => $title,
+                                          url   => $prefix.$link.$suffix,
+                                        );
+    }
 }
 
 # CGI.pm is sometimes awkward about actually performing CGI::escapeHTML
@@ -348,16 +446,15 @@ sub find_internal_links {
  
     @_links_found = (); 
  
-    my %format_opts = ( extended       => $self->{_extended_links},
-                        implicit_links => $self->{_implicit_links} );
+    my %format_opts = $self->_format_opts;
 
     my %format_tags = ( extended_link_delimiters => [ '[[', ']]' ],
                         link => sub {
-                            my ($link, $opts) = @_;
-                            $opts ||= {};
+                            my $link = shift;
+                            my %opts = $self->_format_opts;
                             my $title;
                             ($link, $title) = split(/\|/, $link, 2)
-                              if $opts->{extended};
+                              if $opts{extended};
                             if ( $self->{_force_ucfirst_nodes} ) {
                                 $link = $self->_do_freeupper($link);
                             }
