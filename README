@@ -98,7 +98,10 @@ METHODS
           my $url = "wiki.pl?" . uri_escape($param);
 
         In usemod, the node name is encoded prior to being used as part of
-        the URL.
+        the URL. This method does this encoding (essentially, whitespace is
+        munged into underscores). In addition, if "force_ucfirst_nodes" is
+        in action then the node names will be forced ucfirst if they weren't
+        already.
 
     node_param_to_node_name
           my $node = $q->param('node') || "";

@@ -1,3 +1,7 @@
+0.04    14 May 2003
+        ->node_name_to_node_param method now takes notice of the
+        force_ucfirst_nodes attribute.
+
 0.03    28 April 2003
         Subs in macros are now called with up to nine arguments.  I know this
         is a bit arbitrary, but I now need it to support two arguments and I

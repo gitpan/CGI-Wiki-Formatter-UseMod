@@ -3,7 +3,7 @@ package CGI::Wiki::Formatter::UseMod;
 use strict;
 
 use vars qw( $VERSION @_links_found );
-$VERSION = '0.03';
+$VERSION = '0.04';
 
 use URI::Escape;
 use Text::WikiFormat as => 'wikiformat';
@@ -316,7 +316,10 @@ sub find_internal_links {
   $param = $formatter->node_name_to_node_param( "Recent Changes" );
   my $url = "wiki.pl?" . uri_escape($param);
 
-In usemod, the node name is encoded prior to being used as part of the URL.
+In usemod, the node name is encoded prior to being used as part of the
+URL. This method does this encoding (essentially, whitespace is munged
+into underscores). In addition, if C<force_ucfirst_nodes> is in action
+then the node names will be forced ucfirst if they weren't already.
 
 =cut
 
@@ -324,6 +327,7 @@ sub node_name_to_node_param {
     my ($self, $node_name) = @_;
     my $param = $node_name;
     $param = $self->_munge_spaces($param);
+    $param = $self->_do_freeupper($param) if $self->{_force_ucfirst_nodes};
     $param =~ s/ /_/g;
 
     return $param;

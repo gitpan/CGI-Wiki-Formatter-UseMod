@@ -3,5 +3,6 @@ MANIFEST
 Makefile.PL
 README
 lib/CGI/Wiki/Formatter/UseMod.pm
+t/encode-node-names.t
 t/macros.t
 t/usemod.t
