@@ -12,6 +12,7 @@ t/macros.t
 t/munge_node_name.t
 t/node-suffix.t
 t/paragraphs.t
+t/tables.t
 t/twf-bug.t
 t/usemod.t
 META.yml                                 Module meta-data (added by MakeMaker)

@@ -1,3 +1,11 @@
+0.15    7 August 2004
+        Added very simple table support:
+        || foo || bar ||
+        || bax || quux ||
+        Tables are added with a class of "user_table" so you can manipulate
+          them in your stylesheet without affecting any other tables on
+          your site.
+
 0.14    9 July 2004
         Allow subclassing to alter hyperlink appearance - see SUBCLASSING
           in perldoc CGI::Wiki::Formatter::UseMod.

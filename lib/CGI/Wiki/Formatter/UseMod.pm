@@ -3,7 +3,7 @@ package CGI::Wiki::Formatter::UseMod;
 use strict;
 
 use vars qw( $VERSION @_links_found );
-$VERSION = '0.14';
+$VERSION = '0.15';
 
 use URI::Escape;
 use Text::WikiFormat as => 'wikiformat';
@@ -253,17 +253,27 @@ sub format {
                          ordered         => qr/^\s*([\d]+)\.\s*/,
                          unordered       => qr/^\s*\*\s*/,
                          definition      => qr/^:\s*/,
-                         pre             => qr/^\s+/
+                         pre             => qr/^\s+/,
+                         table           => qr/^\|\|/,
                                     },
         definition               => [ "<dl>\n", "</dl>\n", "<dd>&nbsp;", "</dd>\n" ],
         pre                      => [ "<pre>\n", "</pre>\n", "", "\n" ],
+        table                    => [ qq|<table class="user_table">\n|, "</table>\n",
+                                       sub {
+                                           my $line = shift;
+                                           $line =~ s/\|\|$/<\/td>/;
+                                           $line =~ s/\|\|/<\/td><td>/g;
+                                           return ("<tr>","<td>$line","</tr>");
+                                       },
+                                    ],
         # we don't label unordered lists as "not indented" so we can nest them.
         indented   => {
                         definition => 0,
                         ordered    => 0,
                         pre        => 0,
+                        table      => 0,
                        }, 
-        blockorder => [ qw( header line ordered unordered code definition pre paragraph )],
+        blockorder => [ qw( header line ordered unordered code definition pre table paragraph )],
         nests      => { map { $_ => 1} qw( ordered unordered ) },
         link                     => sub {
             my ($link, $opts) = @_;
