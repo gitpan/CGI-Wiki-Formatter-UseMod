@@ -1,0 +1,5 @@
+MANIFEST
+Makefile.PL
+README
+lib/CGI/Wiki/Formatter/UseMod.pm
+t/usemod.t

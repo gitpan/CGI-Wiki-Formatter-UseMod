@@ -1,0 +1,127 @@
+NAME
+    CGI::Wiki::Formatter::UseMod - UseModWiki-style formatting for CGI::Wiki
+
+DESCRIPTION
+    A formatter backend for CGI::Wiki that supports UseMod-style formatting.
+
+SYNOPSIS
+      use CGI::Wiki::Formatter::UseMod;
+
+      # Instantiate - see below for parameter details.
+      my $formatter = CGI::Wiki::Formatter::UseMod->new( %config );
+
+      # Format some text.
+      my $cooked = $formatter->format($raw);
+
+      # Find out which other nodes that text would link to.
+      my @links_to = $formatter->find_internal_links($raw);
+
+      # UseModWiki "encodes" node names before making them part of a URL, so
+      # for example a node about Wombat Defenestration will have a URL like
+      #   http://example.com/wiki.cgi?Wombat_Defenestration
+      # So if we want to emulate a UseModWiki exactly, we need to munge back
+      # and forth between node names as titles, and node names as CGI params.
+      my $node_param = $q->param('id') || $q->param('keywords') || "";
+      my $node_name = $formatter->node_param_to_node_name( $node_param );
+
+      use URI::Escape;
+      my $url = "http://example.com/wiki.cgi?"
+        . uri_escape(
+           $formatter->node_name_to_node_param( "Wombat Defenestration" )
+                     );
+
+      # Yes, this is a bit of a pain, transparent ways to do this solicited.
+
+METHODS
+    new
+          my $formatter = CGI::Wiki::Formatter::UseMod->new(
+                         extended_links      => 0, # $FreeLinks
+                         implicit_links      => 1, # $WikiLinks
+                         force_ucfirst_nodes => 1, # $FreeUpper
+                         use_headings        => 1, # $UseHeadings
+                         allowed_tags        => [qw(b i)], # defaults to none
+                         macros              => {},
+                         node_prefix         => 'wiki.pl?',
+                         edit_prefix         => 'wiki.pl?action=edit&id=' );
+
+        Parameters will default to the values shown above (apart from
+        "allowed_tags", which defaults to allowing no tags).
+
+        * macros - be aware that macros are processed *after* filtering out
+        disallowed HTML tags. Currently macros are just strings, maybe later
+        we can add in subs if we think it might be useful.
+
+        Macro example:
+
+          macros => { qr/(^|\b)\@SEARCHBOX(\b|$)/ =>
+                        qq(<form action="wiki.pl" method="get">
+                           <input type="hidden" name="action" value="search">
+                           <input type="text" size="20" name="terms">
+                           <input type="submit"></form>) }
+
+    format
+          my $html = $formatter->format($submitted_content, $wiki);
+
+        Escapes any tags which weren't specified as allowed on creation,
+        then interpolates any macros, then translates the raw Wiki language
+        supplied into HTML.
+
+        A CGI::Wiki object can be supplied as an optional second parameter.
+        This object will be used to determine whether a linked-to node
+        exists or not, and alter the presentation of the link accordingly.
+        This is only really in here for use when this method is being called
+        from within CGI::Wiki.
+
+    find_internal_links
+          my @links_to = $formatter->find_internal_links( $content ); 
+ 
+        Returns a list of all nodes that the supplied content links to.
+
+    node_name_to_node_param
+          use URI::Escape;
+          $param = $formatter->node_name_to_node_param( "Recent Changes" );
+          my $url = "wiki.pl?" . uri_escape($param);
+
+        In usemod, the node name is encoded prior to being used as part of
+        the URL.
+
+    node_param_to_node_name
+          my $node = $q->param('node') || "";
+          $node = $formatter->node_param_to_node_name( $node );
+
+        In usemod, the node name is encoded prior to being used as part of
+        the URL, so we must decode it before we can get back the original
+        node name.
+
+AUTHOR
+        Kake Pugh (kake@earth.li).
+
+COPYRIGHT
+             Copyright (C) 2003 Kake Pugh.  All Rights Reserved.
+
+        This module is free software; you can redistribute it and/or modify
+        it under the same terms as Perl itself.
+
+CREDITS
+        The grubstreet team (<http://grault.net/grubstreet/>) sent some very
+        helpful bug reports. A lot of the work of this module is done within
+        chromatic's module, Text::WikiFormat.
+
+CAVEATS
+        This doesn't yet support all of UseMod's formatting features and
+        options, by any means. (In particular, it doesn't cope with nested
+        lists, but I think this might be something I need to fix within
+        Text::WikiFormat.) This really truly *is* a 0.01 release. Please
+        send bug reports, omissions, patches, and stuff, to me at
+        "kake@earth.li".
+
+        See <http://the.earth.li/~kake/cgi-bin/cgi-wiki/wiki.cgi> for a
+        rough stab at a wiki that emulates the functionality as well as the
+        formatting of a UseMod wiki. The source code is linked from there
+        too.
+
+SEE ALSO
+        * CGI::Wiki
+        * Text::WikiFormat
+        * UseModWiki (<http://www.usemod.com/cgi-bin/wiki.pl>)
+
