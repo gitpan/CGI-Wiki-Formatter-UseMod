@@ -1,3 +1,6 @@
+0.10    20 October 2003
+        Fixed bug - ordered lists shouldn't require indent.
+
 0.09    22 September 2003
         Changed the way we call Text::WikiFormat, to avoid <br / being
           inserted all over the place.
