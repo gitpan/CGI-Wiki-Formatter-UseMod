@@ -1,3 +1,7 @@
+0.18    30 November 2004
+        Skip CGI::Wiki-requiring tests if CGI::Wiki not installed (thanks
+          to CPAN tester "nothingmuch" for failure report).
+
 0.17    26 November 2004
         Removed debugging info accidentally left in last release.
 
