@@ -1,3 +1,15 @@
+0.05    17 July 2003
+
+        **** INCOMPATIBLE CHANGE ****
+
+        URL munging is *not* now performed by default.  You need to pass
+        a "munge_urls" parameter to ->new in order for this to happen.
+
+        **** RELATED NOTE FOR PEOPLE WITH OPENGUIDES INSTALLS ****
+
+        Do *not* install this version of CGI::Wiki::Formatter::UseMod
+        unless you are using OpenGuides version 0.21 or later.
+
 0.04    14 May 2003
         ->node_name_to_node_param method now takes notice of the
         force_ucfirst_nodes attribute.

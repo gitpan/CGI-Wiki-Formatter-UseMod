@@ -1,7 +1,7 @@
 use strict;
 local $^W = 1;
 
-use Test::More tests => 22;
+use Test::More tests => 25;
 use Test::MockObject;
 
 use_ok( "CGI::Wiki::Formatter::UseMod" );
@@ -101,7 +101,9 @@ $wiki->mock( "node_exists",
 		}
 );
 
-$formatter = CGI::Wiki::Formatter::UseMod->new( extended_links => 1 );
+# Test with munged URLs.
+$formatter = CGI::Wiki::Formatter::UseMod->new( extended_links => 1,
+                                                munge_urls     => 1 );
 $html = $formatter->format($wikitext, $wiki);
 
 like( $html, qr|<a href="wiki.pl\?Extended_Link">Extended Link</a>|,
@@ -114,6 +116,17 @@ like( $html, qr|[^ ]title with leading whitespace|,
       "...and don't show leading whitespace" );
 like( $html, qr|<a href="wiki.pl\?Extended_Link_Two">|,
       "...and titled nodes with trailing whitespace are munged correctly before formatting" );
+
+# Test with unmunged URLs.
+$formatter = CGI::Wiki::Formatter::UseMod->new( extended_links => 1 );
+$html = $formatter->format($wikitext, $wiki);
+
+like( $html, qr|<a href="wiki.pl\?Extended%20Link">Extended Link</a>|,
+      "extended links work with unmunged URLs" );
+like( $html, qr|<a href="wiki.pl\?Extended%20Link">extended link</a>|,
+      "...and are forced ucfirst" );
+like( $html, qr|<a href="wiki.pl\?Extended%20Link">titled extended link</a>|,
+      "...and titles work" );
 
 @links = $formatter->find_internal_links($wikitext);
 print "# Found links: " . join(", ", @links) . "\n";

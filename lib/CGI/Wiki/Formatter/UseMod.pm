@@ -3,7 +3,7 @@ package CGI::Wiki::Formatter::UseMod;
 use strict;
 
 use vars qw( $VERSION @_links_found );
-$VERSION = '0.04';
+$VERSION = '0.05';
 
 use URI::Escape;
 use Text::WikiFormat as => 'wikiformat';
@@ -31,22 +31,6 @@ A formatter backend for L<CGI::Wiki> that supports UseMod-style formatting.
   # Find out which other nodes that text would link to.
   my @links_to = $formatter->find_internal_links($raw);
 
-  # UseModWiki "encodes" node names before making them part of a URL, so
-  # for example a node about Wombat Defenestration will have a URL like
-  #   http://example.com/wiki.cgi?Wombat_Defenestration
-  # So if we want to emulate a UseModWiki exactly, we need to munge back
-  # and forth between node names as titles, and node names as CGI params.
-  my $node_param = $q->param('id') || $q->param('keywords') || "";
-  my $node_name = $formatter->node_param_to_node_name( $node_param );
-
-  use URI::Escape;
-  my $url = "http://example.com/wiki.cgi?"
-    . uri_escape(
-       $formatter->node_name_to_node_param( "Wombat Defenestration" )
-                 );
-
-  # Yes, this is a bit of a pain, transparent ways to do this solicited.
-
 =head1 METHODS
 
 =over 4
@@ -61,12 +45,29 @@ A formatter backend for L<CGI::Wiki> that supports UseMod-style formatting.
                  allowed_tags        => [qw(b i)], # defaults to none
                  macros              => {},
 	         node_prefix         => 'wiki.pl?',
-                 edit_prefix         => 'wiki.pl?action=edit&id=' );
+                 edit_prefix         => 'wiki.pl?action=edit&id=',
+                 munge_urls          => 0,
+  );
 
 Parameters will default to the values shown above (apart from
 C<allowed_tags>, which defaults to allowing no tags).
 
 =over 4
+
+=item B<URL munging>
+
+If you set C<munge_urls> to true, then your URLs will be more
+user-friendly, for example
+
+  http://example.com/wiki.cgi?Mailing_List_Managers
+
+rather than
+
+  http://example.com/wiki.cgi?Mailing%20List%20Managers
+
+The former behaviour is the actual UseMod behaviour, but requires a
+little fiddling about in your code (see C<node_name_to_node_param>),
+so the default is to B<not> munge URLs.
 
 =item B<Macros>
 
@@ -118,6 +119,7 @@ sub _init {
 		 macros              => {},
 	         node_prefix         => 'wiki.pl?',
                  edit_prefix         => 'wiki.pl?action=edit&id=',
+                 munge_urls          => 0,
 	       );
 
     my %collated = (%defs, %args);
@@ -214,7 +216,7 @@ sub format {
                 $editlink_not_link = 1;
 	    }
 
-	    $link =~ s/ /_/g;
+	    $link =~ s/ /_/g if $self->{_munge_urls};
 
             $link = uri_escape( $link );
 
@@ -321,10 +323,14 @@ URL. This method does this encoding (essentially, whitespace is munged
 into underscores). In addition, if C<force_ucfirst_nodes> is in action
 then the node names will be forced ucfirst if they weren't already.
 
+Note that unless C<munge_urls> was set to true when C<new> was called,
+this method will do nothing.
+
 =cut
 
 sub node_name_to_node_param {
     my ($self, $node_name) = @_;
+    return $node_name unless $self->{_munge_urls};
     my $param = $node_name;
     $param = $self->_munge_spaces($param);
     $param = $self->_do_freeupper($param) if $self->{_force_ucfirst_nodes};
@@ -341,10 +347,14 @@ sub node_name_to_node_param {
 In usemod, the node name is encoded prior to being used as part of the
 URL, so we must decode it before we can get back the original node name.
 
+Note that unless C<munge_urls> was set to true when C<new> was called,
+this method will do nothing.
+
 =cut
 
 sub node_param_to_node_name {
     my ($self, $param) = @_;
+    return $param unless $self->{_munge_urls};
 
     # Note that this might not give us back exactly what we started with,
     # since in the encoding we collapse and trim whitespace; but this is
@@ -391,9 +401,9 @@ under the same terms as Perl itself.
 
 =head1 CREDITS
 
-The grubstreet team (L<http://grault.net/grubstreet/>) sent some very
-helpful bug reports. A lot of the work of this module is done within
-chromatic's module, L<Text::WikiFormat>.
+The OpenGuides London team (L<http://openguides.org/london/>) sent
+some very helpful bug reports. A lot of the work of this module is
+done within chromatic's module, L<Text::WikiFormat>.
 
 =head1 CAVEATS
 
@@ -404,9 +414,25 @@ L<Text::WikiFormat>.) This really truly I<is> a 0.0* release. Please
 send bug reports, omissions, patches, and stuff, to me at
 C<kake@earth.li>.
 
-See L<http://the.earth.li/~kake/cgi-bin/cgi-wiki/wiki.cgi> for a rough
-stab at a wiki that emulates the functionality as well as the
-formatting of a UseMod wiki. The source code is linked from there too.
+=head1 NOTE ON USEMOD COMPATIBILITY
+
+UseModWiki "encodes" node names before making them part of a URL, so
+for example a node about Wombat Defenestration will have a URL like
+
+  http://example.com/wiki.cgi?Wombat_Defenestration
+
+So if we want to emulate a UseModWiki exactly, we need to munge back
+and forth between node names as titles, and node names as CGI params.
+
+  my $formatter = CGI::Wiki::Formatter::UseMod->new( munge_urls => 1 );
+  my $node_param = $q->param('id') || $q->param('keywords') || "";
+  my $node_name = $formatter->node_param_to_node_name( $node_param );
+
+  use URI::Escape;
+  my $url = "http://example.com/wiki.cgi?"
+    . uri_escape(
+       $formatter->node_name_to_node_param( "Wombat Defenestration" )
+                 );
 
 =head1 SEE ALSO
 
