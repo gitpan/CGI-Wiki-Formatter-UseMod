@@ -3,7 +3,7 @@ package CGI::Wiki::Formatter::UseMod;
 use strict;
 
 use vars qw( $VERSION @_links_found );
-$VERSION = '0.16';
+$VERSION = '0.17';
 
 use URI::Escape;
 use Text::WikiFormat as => 'wikiformat';
@@ -278,7 +278,6 @@ sub format {
     foreach my $key (keys %macros) {
         my $value = $macros{$key};
         if ( ref $value && ref $value eq 'CODE' ) {
-warn "foo";
 	    if ( $self->{_pass_wiki_to_macros} and $wiki ) {
                 $safe=~ s/$key/$value->($wiki, $1, $2, $3, $4, $5, $6, $7, $8, $9)/eg;
             } else {

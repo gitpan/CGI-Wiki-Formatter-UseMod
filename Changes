@@ -1,3 +1,6 @@
+0.17    26 November 2004
+        Removed debugging info accidentally left in last release.
+
 0.16    20 September 2004
         Added the "pass_wiki_to_macros" flag to let you write more powerful
           macros - see perldoc for details.
