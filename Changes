@@ -1,3 +1,6 @@
+0.11    20 November 2003
+        Added (experimental, advanced) "munge_node_name" parameter.
+
 0.10    20 October 2003
         Fixed bug - ordered lists shouldn't require indent.
 

@@ -7,6 +7,7 @@ t/encode-node-names.t
 t/linebreaks.t
 t/lists.t
 t/macros.t
+t/munge_node_name.t
 t/node-suffix.t
 t/paragraphs.t
 t/twf-bug.t

@@ -3,7 +3,7 @@ package CGI::Wiki::Formatter::UseMod;
 use strict;
 
 use vars qw( $VERSION @_links_found );
-$VERSION = '0.10';
+$VERSION = '0.11';
 
 use URI::Escape;
 use Text::WikiFormat as => 'wikiformat';
@@ -46,7 +46,7 @@ A formatter backend for L<CGI::Wiki> that supports UseMod-style formatting.
                  macros              => {},
                  node_prefix         => 'wiki.pl?',
                  node_suffix         => '',
-                 edit_prefix         => 'wiki.pl?action=edit&id=',
+                 edit_prefix         => 'wiki.pl?action=edit;id=',
                  edit_suffix         => '',
                  munge_urls          => 0,
   );
@@ -55,6 +55,42 @@ Parameters will default to the values shown above (apart from
 C<allowed_tags>, which defaults to allowing no tags).
 
 =over 4
+
+=item B<Internal links>
+
+C<node_prefix>, C<node_suffix>, C<edit_prefix> and C<edit_suffix>
+allow you to control the URLs generated for links to other wiki pages.
+So for example with the defaults given above, a link to the Home node
+will have the URL C<wiki.pl?Home> and a link to the edit form for the
+Home node will have the URL C<wiki.pl?action=edit;id=Home>
+
+(Note that of course the URLs that you wish to have generated will
+depend on how your wiki application processes its CGI parameters - you
+can't just put random stuff in there and hope it works!)
+
+=item B<Internal links - advanced options>
+
+If you wish to have greater control over the links, you may use the
+C<munge_node_name> parameter.  The value of this should be a
+subroutine reference.  This sub will be called on each internal link
+after all other formatting and munging I<except> URL escaping has been
+applied.  It will be passed the node name as its first parameter and
+should return a node name.  Note that this will affect the URLs of
+internal links, but not the link text.
+
+Example:
+
+  # The formatter munges links so node names are ucfirst.
+  # Ensure 'state51' always appears in lower case in node names.
+  munge_node_name => sub {
+                         my $node_name = shift;
+                         $node_name =~ s/State51/state51/g;
+                         return $node_name;
+                     }
+
+B<Note:> This is I<advanced> usage and you should only do it if you
+I<really> know what you're doing.  Consider in particular whether and
+how your munged nodes are going to be treated by C<retrieve_node>.
 
 =item B<URL munging>
 
@@ -121,9 +157,10 @@ sub _init {
                  macros              => {},
                  node_prefix         => 'wiki.pl?',
                  node_suffix         => '',
-                 edit_prefix         => 'wiki.pl?action=edit&id=',
+                 edit_prefix         => 'wiki.pl?action=edit;id=',
                  edit_suffix         => '',
                  munge_urls          => 0,
+                 munge_node_name     => undef,
                );
 
     my %collated = (%defs, %args);
@@ -226,6 +263,9 @@ sub format {
             }
             $link = $self->_munge_spaces($link);
 
+            $link = $self->{_munge_node_name}($link)
+              if $self->{_munge_node_name};
+
             my $editlink_not_link = 0;
             # See whether the linked-to node exists, if we can.
             if ( $wiki && !$wiki->node_exists( $link ) ) {
@@ -277,7 +317,6 @@ sub find_internal_links {
     @_links_found = (); 
  
     my %format_opts = ( extended       => $self->{_extended_links},
-                        prefix         => $self->{_node_prefix},
                         implicit_links => $self->{_implicit_links} );
 
     my %format_tags = ( extended_link_delimiters => [ '[[', ']]' ],
@@ -290,6 +329,8 @@ sub find_internal_links {
                             if ( $self->{_force_ucfirst_nodes} ) {
                                 $link = $self->_do_freeupper($link);
                             }
+                            $link = $self->{_munge_node_name}($link)
+                              if $self->{_munge_node_name};
                             $link = $self->_munge_spaces($link);
                             push @CGI::Wiki::Formatter::UseMod::_links_found,
                                                                          $link;
